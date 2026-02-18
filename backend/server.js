@@ -1,25 +1,47 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import connectDB from "./config/db.js";
-import resourceRoutes from "./routes/resourceRoutes.js";
+import { useState } from "react";
+import { Document, Page } from "react-pdf";
+import API from "../Api";
 
-dotenv.config();
-connectDB();
+function Search() {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
 
-const app = express();
+  const handleSearch = async () => {
+    const res = await API.get(`/search?q=${query}`);
+    setResults(res.data);
+  };
 
-app.use(cors());
-app.use(express.json());
+  return (
+    <div>
+      <input
+        type="text"
+        placeholder="Search..."
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      <button onClick={handleSearch}>Search</button>
 
-app.use("/api", resourceRoutes);
+      {results.map((item) => (
+        <div key={item._id}>
+          <h3>{item.title}</h3>
+          <p>{item.description}</p>
 
-app.get("/", (req, res) => {
-  res.send("Smart Campus AI Backend Running");
-});
+          <a
+            href={`https://your-render-url.onrender.com${item.fileUrl}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            View Full PDF
+          </a>
 
-const PORT = process.env.PORT || 5000;
+          <Document
+            file={`https://your-render-url.onrender.com${item.fileUrl}`}
+          >
+            <Page pageNumber={1} />
+          </Document>
+        </div>
+      ))}
+    </div>
+  );
+}
 
-app.listen(PORT, () =>
-  console.log(`Server running on port ${PORT}`)
-);
+export default Search;

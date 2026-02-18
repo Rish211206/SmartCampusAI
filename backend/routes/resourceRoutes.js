@@ -1,81 +1,54 @@
 import express from "express";
+import multer from "multer";
+import pdfParse from "pdf-parse";
 import Resource from "../models/Resource.js";
+import fs from "fs";
 
 const router = express.Router();
 
-/*
-=================================
-UPLOAD RESOURCE
-=================================
-*/
-router.post("/upload", async (req, res) => {
-  try {
-    const { title, summary, fileType } = req.body;
-
-    const resource = new Resource({
-      title,
-      summary,
-      fileType,
-      relevanceScore: Math.random() // mock score
-    });
-
-    await resource.save();
-
-    res.json({
-      message: "Resource uploaded successfully",
-      resource
-    });
-  } catch (error) {
-    res.status(500).json({ error: "Upload failed" });
+// Storage config
+const storage = multer.diskStorage({
+  destination: "uploads/",
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
   }
 });
 
-/*
-=================================
-SEARCH (SIMULATED SEMANTIC SEARCH)
-=================================
-*/
+const upload = multer({ storage });
+
+// Upload PDF
+router.post("/upload", upload.single("file"), async (req, res) => {
+  try {
+    const filePath = req.file.path;
+
+    const dataBuffer = fs.readFileSync(filePath);
+    const pdfData = await pdfParse(dataBuffer);
+
+    const newResource = new Resource({
+      title: req.body.title,
+      description: req.body.description,
+      fileUrl: `/uploads/${req.file.filename}`,
+      content: pdfData.text
+    });
+
+    await newResource.save();
+
+    res.json({ message: "PDF uploaded successfully", resource: newResource });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Search resources
 router.get("/search", async (req, res) => {
-  try {
-    const query = req.query.q;
+  const query = req.query.q;
 
-    const resources = await Resource.find();
+  const results = await Resource.find({
+    content: { $regex: query, $options: "i" }
+  });
 
-    // Simulated semantic search logic
-    const filtered = resources
-      .map((item) => {
-        let score = 0;
-
-        if (item.title.toLowerCase().includes(query.toLowerCase())) {
-          score += 0.6;
-        }
-
-        if (item.summary.toLowerCase().includes(query.toLowerCase())) {
-          score += 0.4;
-        }
-
-        return {
-          ...item._doc,
-          relevanceScore: score
-        };
-      })
-      .filter((item) => item.relevanceScore > 0)
-      .sort((a, b) => b.relevanceScore - a.relevanceScore);
-
-    res.json(filtered);
-  } catch (error) {
-    res.status(500).json({ error: "Search failed" });
-  }
-});
-
-/*
-=================================
-GET ALL RESOURCES
-=================================
-*/
-router.get("/resources", async (req, res) => {
-  const resources = await Resource.find();
-  res.json(resources);
+  res.json(results);
 });
 
 export default router;
