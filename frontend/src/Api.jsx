@@ -13,4 +13,4 @@ export const searchResources = (query) =>
 export const getResources = () =>
   API.get("/resources").then(res => res.data);
 
-export default API;
+export default Api;
