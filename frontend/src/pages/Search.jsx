@@ -1,112 +1,151 @@
 import { useState } from "react";
+import { searchResources } from "../Api";
 
 function Search() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const demoData = [
-    {
-      title: "Environmental Studies Notes",
-      description: "Comprehensive notes covering climate change and sustainability.",
-      fileUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
-    },
-    {
-      title: "Research Paper on Environment",
-      description: "Detailed research on environmental conservation strategies.",
-      fileUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
-    },
-    {
-      title: "Sustainable Development PDF",
-      description: "Study material on sustainable development goals.",
-      fileUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
-    }
-  ];
-
-  const handleSearch = () => {
+  const handleSearch = async () => {
     setLoading(true);
 
+    const data = await searchResources(query);
+
+    // simulate AI delay
     setTimeout(() => {
-      const filtered = demoData.filter((item) =>
-        item.title.toLowerCase().includes(query.toLowerCase())
-      );
-      setResults(filtered);
+      setResults(data);
       setLoading(false);
-    }, 1200); // fake AI delay
+    }, 600);
   };
 
   return (
-    <div style={{ textAlign: "center", padding: "40px" }}>
+    <div style={styles.container}>
       <h2>Search Resources</h2>
 
-      <div style={{ marginTop: "20px" }}>
+      <div style={styles.searchBox}>
         <input
-          type="text"
-          placeholder="Search resources..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          style={{
-            padding: "10px",
-            width: "300px",
-            borderRadius: "6px",
-            border: "1px solid #ccc"
-          }}
+          placeholder="Search notes, PDFs, research papers..."
+          style={styles.input}
         />
-        <button
-          onClick={handleSearch}
-          style={{
-            padding: "10px 20px",
-            marginLeft: "10px",
-            backgroundColor: "#1d72b8",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer"
-          }}
-        >
+        <button onClick={handleSearch} style={styles.button}>
           Search
         </button>
       </div>
 
-      {loading && <p style={{ marginTop: "20px" }}>🔍 AI is analyzing...</p>}
+      {loading && <p style={styles.loading}>🔎 AI is analyzing...</p>}
 
-      <div style={{ marginTop: "30px" }}>
+      {!loading && results.length === 0 && query && (
+        <p style={styles.empty}>No results found.</p>
+      )}
+
+      <div style={styles.results}>
         {results.map((item, index) => (
-          <div
-            key={index}
-            style={{
-              background: "white",
-              padding: "20px",
-              margin: "10px auto",
-              width: "400px",
-              borderRadius: "10px",
-              boxShadow: "0 5px 15px rgba(0,0,0,0.1)"
-            }}
-          >
-            <h3>{item.title}</h3>
-            <p>{item.description}</p>
+          <div key={index} style={styles.card}>
+            <div style={styles.cardHeader}>
+              <h3>{item.title}</h3>
+              <span style={styles.score}>
+                {Math.round(item.relevanceScore * 100)}%
+              </span>
+            </div>
 
-            <a
-              href={item.fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "inline-block",
-                marginTop: "10px",
-                backgroundColor: "#4CAF50",
-                color: "white",
-                padding: "8px 15px",
-                borderRadius: "6px",
-                textDecoration: "none"
-              }}
-            >
-              📄 Preview PDF
-            </a>
+            <p style={styles.summary}>{item.summary}</p>
+
+            <div style={styles.footer}>
+              <span style={styles.fileType}>{item.fileType}</span>
+              <button style={styles.viewBtn}>View</button>
+            </div>
           </div>
         ))}
       </div>
     </div>
   );
 }
+
+const styles = {
+  container: {
+    padding: "80px 40px",
+    backgroundColor: "#f9fbff",
+    minHeight: "100vh"
+  },
+  searchBox: {
+    display: "flex",
+    justifyContent: "center",
+    marginTop: "20px"
+  },
+  input: {
+    padding: "14px",
+    width: "400px",
+    borderRadius: "10px 0 0 10px",
+    border: "1px solid #ccc"
+  },
+  button: {
+    padding: "14px 20px",
+    borderRadius: "0 10px 10px 0",
+    border: "none",
+    backgroundColor: "#1976d2",
+    color: "#fff",
+    cursor: "pointer"
+  },
+  loading: {
+    textAlign: "center",
+    marginTop: "20px",
+    color: "#1976d2"
+  },
+  empty: {
+    textAlign: "center",
+    marginTop: "20px",
+    color: "#777"
+  },
+  results: {
+    marginTop: "40px",
+    display: "grid",
+    gap: "25px"
+  },
+  card: {
+    backgroundColor: "#ffffff",
+    padding: "25px",
+    borderRadius: "16px",
+    boxShadow: "0 10px 25px rgba(0,0,0,0.05)",
+    transition: "transform 0.2s ease"
+  },
+  cardHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  score: {
+    backgroundColor: "#e3f2fd",
+    color: "#1976d2",
+    padding: "6px 12px",
+    borderRadius: "20px",
+    fontSize: "14px"
+  },
+  summary: {
+    marginTop: "15px",
+    color: "#555"
+  },
+  footer: {
+    marginTop: "20px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  fileType: {
+    backgroundColor: "#f1f1f1",
+    padding: "6px 12px",
+    borderRadius: "8px",
+    fontSize: "13px"
+  },
+  viewBtn: {
+    backgroundColor: "#1976d2",
+    color: "#fff",
+    border: "none",
+    padding: "8px 16px",
+    borderRadius: "8px",
+    cursor: "pointer"
+  }
+};
 
 export default Search;
