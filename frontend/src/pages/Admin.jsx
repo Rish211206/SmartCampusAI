@@ -2,95 +2,176 @@ import { useState } from "react";
 import API from "../Api";
 
 function Admin() {
-  const [file, setFile] = useState(null);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [form, setForm] = useState({
+    title: "",
+    summary: "",
+    fileType: ""
+  });
 
-  const handleUpload = async () => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("title", title);
-    formData.append("description", description);
+  const [file, setFile] = useState(null);
+  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!file) {
+      alert("Please upload a PDF file");
+      return;
+    }
 
     try {
+      setLoading(true);
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("title", form.title);
+      formData.append("summary", form.summary);
+      formData.append("fileType", form.fileType);
+
       await API.post("/upload", formData);
-      alert("Uploaded Successfully!");
+
+      setSuccess(true);
+
+      setTimeout(() => {
+        setSuccess(false);
+        setForm({ title: "", summary: "", fileType: "" });
+        setFile(null);
+      }, 2000);
     } catch (error) {
-      alert("Upload Failed!");
+      alert("Upload Failed ❌");
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div
-      style={{
-        minHeight: "80vh",
-        background: "#f4f7fb",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <div
-        style={{
-          background: "white",
-          padding: "40px",
-          borderRadius: "12px",
-          width: "400px",
-          boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-        }}
-      >
-        <h2 style={{ textAlign: "center", marginBottom: "20px" }}>
-          Upload PDF
-        </h2>
+    <div style={styles.container}>
+      <div style={styles.card}>
+        <h2>Admin Upload Panel</h2>
+        <p style={styles.subtitle}>
+          Upload academic resources to Smart Campus AI
+        </p>
 
-        <input
-          type="text"
-          placeholder="Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          style={inputStyle}
-        />
+        <form onSubmit={handleSubmit} style={styles.form}>
+          <input
+            type="text"
+            placeholder="Resource Title"
+            value={form.title}
+            required
+            onChange={(e) =>
+              setForm({ ...form, title: e.target.value })
+            }
+            style={styles.input}
+          />
 
-        <input
-          type="text"
-          placeholder="Description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          style={inputStyle}
-        />
+          <textarea
+            placeholder="Short Summary"
+            value={form.summary}
+            required
+            onChange={(e) =>
+              setForm({ ...form, summary: e.target.value })
+            }
+            style={styles.textarea}
+          />
 
-        <input
-          type="file"
-          accept="application/pdf"
-          onChange={(e) => setFile(e.target.files[0])}
-          style={{ marginBottom: "15px" }}
-        />
+          <select
+            value={form.fileType}
+            required
+            onChange={(e) =>
+              setForm({ ...form, fileType: e.target.value })
+            }
+            style={styles.select}
+          >
+            <option value="">Select File Type</option>
+            <option value="PDF">PDF</option>
+            <option value="Notes">Notes</option>
+            <option value="Research Paper">Research Paper</option>
+            <option value="Presentation">Presentation</option>
+          </select>
 
-        <button onClick={handleUpload} style={buttonStyle}>
-          Upload
-        </button>
+          <input
+            type="file"
+            accept="application/pdf"
+            onChange={(e) => setFile(e.target.files[0])}
+            style={styles.fileInput}
+          />
+
+          <button type="submit" style={styles.button}>
+            {loading ? "Uploading..." : "Upload Resource"}
+          </button>
+
+          {success && (
+            <p style={styles.success}>
+              ✅ Resource Uploaded Successfully!
+            </p>
+          )}
+        </form>
       </div>
     </div>
   );
 }
 
-const inputStyle = {
-  width: "100%",
-  padding: "10px",
-  marginBottom: "15px",
-  borderRadius: "6px",
-  border: "1px solid #ccc",
-};
-
-const buttonStyle = {
-  width: "100%",
-  padding: "12px",
-  backgroundColor: "#1d72b8",
-  color: "white",
-  border: "none",
-  borderRadius: "6px",
-  cursor: "pointer",
-  fontWeight: "bold",
+const styles = {
+  container: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: "90vh",
+    backgroundColor: "#f4f8ff",
+    padding: "40px"
+  },
+  card: {
+    backgroundColor: "#ffffff",
+    padding: "40px",
+    borderRadius: "20px",
+    boxShadow: "0 15px 40px rgba(0,0,0,0.08)",
+    width: "450px"
+  },
+  subtitle: {
+    marginBottom: "25px",
+    color: "#666"
+  },
+  form: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "18px"
+  },
+  input: {
+    padding: "12px",
+    borderRadius: "10px",
+    border: "1px solid #ddd"
+  },
+  textarea: {
+    padding: "12px",
+    borderRadius: "10px",
+    border: "1px solid #ddd",
+    minHeight: "90px",
+    resize: "none"
+  },
+  select: {
+    padding: "12px",
+    borderRadius: "10px",
+    border: "1px solid #ddd"
+  },
+  fileInput: {
+    padding: "8px"
+  },
+  button: {
+    padding: "12px",
+    borderRadius: "10px",
+    border: "none",
+    backgroundColor: "#1976d2",
+    color: "#fff",
+    cursor: "pointer",
+    fontWeight: "500"
+  },
+  success: {
+    marginTop: "10px",
+    color: "green",
+    fontWeight: "500"
+  }
 };
 
 export default Admin;
